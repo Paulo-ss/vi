@@ -1,3 +1,5 @@
+import { VI } from "@/types/VI";
+
 export interface IVIContent {
   residentSoil?: number;
   industrialSoil?: number;
@@ -8,4 +10,9 @@ export interface IVIContent {
   residencial?: number;
   industrial?: number;
   VI?: number;
+}
+
+export interface IVIFile {
+  lastUpdated: string;
+  vi: VI;
 }

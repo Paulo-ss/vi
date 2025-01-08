@@ -7,10 +7,11 @@ import ErrorDisplay from "../ui/errorDisplay/ErrorDisplay";
 import { Button } from "../ui/button";
 import { IconPlus } from "@tabler/icons-react";
 import CasItem from "./CasItem";
+import { VI } from "@/types/VI";
 
 interface IProps {
-  availableCas?: string[];
-  lastUpdated?: { lastUpdated: string };
+  viByCas?: VI;
+  lastUpdated?: string;
   error?: IAPIError;
 }
 
@@ -22,7 +23,7 @@ export interface ICasForms {
   cas: ICasForm[];
 }
 
-const SelectCas: FC<IProps> = ({ availableCas, lastUpdated, error }) => {
+const SelectCas: FC<IProps> = ({ viByCas, lastUpdated, error }) => {
   const { control } = useForm<ICasForms>({
     defaultValues: {
       cas: [
@@ -42,7 +43,7 @@ const SelectCas: FC<IProps> = ({ availableCas, lastUpdated, error }) => {
 
   return (
     <div className="flex flex-col items-center">
-      {error || !availableCas ? (
+      {error || !viByCas ? (
         <ErrorDisplay
           errorMessage={
             error ? error.errorMessage : "Ocorreu um erro inesperado."
@@ -58,7 +59,7 @@ const SelectCas: FC<IProps> = ({ availableCas, lastUpdated, error }) => {
                 <CasItem
                   control={control}
                   index={index}
-                  availableCas={availableCas}
+                  viByCas={viByCas}
                   lastUpdated={lastUpdated}
                   remove={remove}
                 />

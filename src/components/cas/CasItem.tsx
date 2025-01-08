@@ -5,7 +5,6 @@ import { Label } from "../ui/Label";
 import { Control, Controller, UseFieldArrayRemove } from "react-hook-form";
 import { ICasForms } from "./SelectCas";
 import Select from "react-select";
-import { fetchResource } from "@/services/fetchService";
 import { VI } from "@/types/VI";
 import { useToast } from "@/hooks/use-toast";
 import { IVIContent } from "@/interfaces/VI";
@@ -22,8 +21,8 @@ import { IconTrash } from "@tabler/icons-react";
 
 interface IProps {
   index: number;
-  availableCas: string[];
-  lastUpdated?: { lastUpdated: string };
+  viByCas: VI;
+  lastUpdated?: string;
   remove: UseFieldArrayRemove;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   control: Control<ICasForms, any>;
@@ -32,7 +31,7 @@ interface IProps {
 const CasItem: FC<IProps> = ({
   control,
   index,
-  availableCas,
+  viByCas,
   lastUpdated,
   remove,
 }) => {
@@ -41,27 +40,31 @@ const CasItem: FC<IProps> = ({
 
   const { toast } = useToast();
 
+  const availableCas = Object.keys(viByCas)
+    .map((cas) => {
+      if (cas && cas !== "CAS No.") {
+        return cas;
+      }
+    })
+    .filter((cas) => cas !== undefined);
+
   const fetchCasVI = async (cas: string) => {
     try {
       setIsLoading(true);
 
-      const { data, error } = await fetchResource<VI>({
-        url: `/vi/cas/${cas}`,
-      });
+      const selectedCasViNumbers = viByCas[cas];
 
-      if (error) {
+      if (!selectedCasViNumbers) {
         toast({
           title: "Erro",
-          description:
-            error.errorMessage ??
-            `Ocorreu um erro ao buscar VI para o CAS ${cas}`,
+          description: `O CAS ${cas} não foi encontrado`,
           variant: "destructive",
         });
 
         return;
       }
 
-      setCasVINumbers(data![cas]);
+      setCasVINumbers(selectedCasViNumbers);
     } catch (error) {
       console.log({ error });
 
@@ -196,9 +199,7 @@ const CasItem: FC<IProps> = ({
         </div>
 
         <div className="col-span-1 md:col-span-3 flex flex-col items-center w-full gap-2">
-          <p className="mt-4 text-sm font-bold">
-            USEPA, {lastUpdated?.lastUpdated}
-          </p>
+          <p className="mt-4 text-sm font-bold">USEPA, {lastUpdated}</p>
 
           <Table className="text-center rounded-md overflow-hidden">
             <TableHeader>

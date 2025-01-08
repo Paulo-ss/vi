@@ -1,16 +1,11 @@
 import SelectCas from "@/components/cas/SelectCas";
+import { IVIFile } from "@/interfaces/VI";
 import { fetchResource } from "@/services/fetchService";
 import Image from "next/image";
 
 export default async function Home() {
-  const { data: availableCas, error } = await fetchResource<string[]>({
+  const { data: casVI, error } = await fetchResource<IVIFile>({
     url: "/vi/cas",
-  });
-
-  const { data: lastUpdated } = await fetchResource<{
-    lastUpdated: string;
-  }>({
-    url: "/vi/last-updated",
   });
 
   return (
@@ -26,9 +21,9 @@ export default async function Home() {
       />
 
       <SelectCas
-        availableCas={availableCas}
+        viByCas={casVI?.vi}
         error={error}
-        lastUpdated={lastUpdated}
+        lastUpdated={casVI?.lastUpdated}
       />
 
       <div className="mt-4">
@@ -43,6 +38,10 @@ export default async function Home() {
             EPA Gov
           </a>{" "}
           , baseados na tabela {"'Summary Table (TR=1E-06 THQ=1.0)'"}
+        </p>
+
+        <p className="italic text-zinc-800 text-sm max-w-screen-sm mt-2">
+          * Última atualização em {casVI?.lastUpdated}
         </p>
       </div>
     </div>
