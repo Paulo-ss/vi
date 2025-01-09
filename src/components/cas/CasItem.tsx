@@ -2,12 +2,8 @@
 
 import { FC, Fragment, useState } from "react";
 import { Label } from "../ui/Label";
-import { Control, Controller, UseFieldArrayRemove } from "react-hook-form";
-import { ICasForms } from "./SelectCas";
-import Select from "react-select";
+import { Controller, useForm } from "react-hook-form";
 import { VI } from "@/types/VI";
-import { useToast } from "@/hooks/use-toast";
-import { IVIContent } from "@/interfaces/VI";
 import {
   Table,
   TableBody,
@@ -17,125 +13,171 @@ import {
   TableRow,
 } from "../ui/table";
 import { Button } from "../ui/button";
-import { IconTrash } from "@tabler/icons-react";
+import {
+  IconCheckbox,
+  IconClipboard,
+  IconSearch,
+  IconTrash,
+} from "@tabler/icons-react";
+import { Input } from "../ui/Input";
+import { useToast } from "@/hooks/use-toast";
+import { IVIContent } from "@/interfaces/VI";
 
 interface IProps {
-  index: number;
   viByCas: VI;
   lastUpdated?: string;
-  remove: UseFieldArrayRemove;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  control: Control<ICasForms, any>;
 }
 
-const CasItem: FC<IProps> = ({
-  control,
-  index,
-  viByCas,
-  lastUpdated,
-  remove,
-}) => {
-  const [isLoading, setIsLoading] = useState(false);
-  const [casVINumber, setCasVINumbers] = useState<IVIContent | null>(null);
+interface ICasForm {
+  casCode: string;
+}
 
+type VIColumnsType = keyof IVIContent;
+
+const CasItem: FC<IProps> = ({ viByCas, lastUpdated }) => {
+  const { control, setValue, handleSubmit } = useForm<ICasForm>({
+    defaultValues: {
+      casCode: "",
+    },
+  });
   const { toast } = useToast();
 
-  const availableCas = Object.keys(viByCas)
-    .map((cas) => {
-      if (cas && cas !== "CAS No.") {
-        return cas;
-      }
-    })
-    .filter((cas) => cas !== undefined);
+  const [selectedCas, setSelectedCas] = useState<VI | null>(null);
 
-  const fetchCasVI = async (cas: string) => {
-    try {
-      setIsLoading(true);
+  const lastUpdatedSplited = lastUpdated ? lastUpdated.split(" ") : [];
 
-      const selectedCasViNumbers = viByCas[cas];
+  const copyColumnToClipboard = (column: VIColumnsType) => {
+    const columnText: string[] = [];
 
-      if (!selectedCasViNumbers) {
-        toast({
-          title: "Erro",
-          description: `O CAS ${cas} não foi encontrado`,
-          variant: "destructive",
-        });
+    for (const key of Object.keys(selectedCas!)) {
+      const vi = selectedCas![key];
 
-        return;
-      }
-
-      setCasVINumbers(selectedCasViNumbers);
-    } catch (error) {
-      console.log({ error });
-
-      if (error instanceof Error) {
-        toast({
-          title: "Erro",
-          description:
-            error.message ?? `Ocorreu um erro ao buscar VI para o CAS ${cas}`,
-          variant: "destructive",
-        });
-      }
-    } finally {
-      setIsLoading(false);
+      columnText.push(vi[column] ? String(vi[column]) : "-");
     }
+
+    navigator.clipboard.writeText(columnText.join("\r\n"));
+
+    toast({
+      title: "Copiado!",
+      description: `Coluna ${column} copiada com sucesso.`,
+      action: <IconCheckbox color="#39f01d" />,
+    });
+  };
+
+  const onCasSubmit = (data: ICasForm) => {
+    const allTypedCas = data.casCode.split(/\s+/gm);
+
+    let foundVIByCas: VI = {};
+
+    for (const cas of allTypedCas) {
+      if (cas && cas !== "CAS No.") {
+        const vi = viByCas[cas];
+
+        if (vi) {
+          foundVIByCas = {
+            ...foundVIByCas,
+            [cas]: vi,
+          };
+        }
+      }
+    }
+
+    if (Object.keys(foundVIByCas).length === 0) {
+      setSelectedCas(null);
+
+      return;
+    }
+
+    setSelectedCas(foundVIByCas);
   };
 
   return (
     <Fragment>
-      <div className="w-full flex items-center gap-2">
-        <Controller
-          control={control}
-          name={`cas.${index}.casCode`}
-          defaultValue={{
-            value: "",
-            label: "",
-          }}
-          render={({ field: { value, onChange, name } }) => (
-            <div className="w-full">
-              <div className="mb-2">
-                <Label htmlFor={name}>Selecione um Número CAS</Label>
-              </div>
+      <form className="w-full flex gap-2" onSubmit={handleSubmit(onCasSubmit)}>
+        {selectedCas ? (
+          <div className="w-3/4 flex flex-col gap-2">
+            <h2 className="text-lg">CAS encontrados</h2>
 
-              <Select
-                value={value}
-                onChange={(value) => {
-                  onChange(value);
-
-                  if (value) {
-                    const selectedOption = value as unknown as {
-                      value: string;
-                      label: string;
-                    };
-
-                    fetchCasVI(selectedOption.value);
-                  }
-                }}
-                options={availableCas.map((cas) => ({
-                  value: cas,
-                  label: cas,
-                }))}
-                isClearable
-                placeholder="Selecione..."
-              />
+            <div className="flex items-center gap-2 overflow-auto no-scrollbar">
+              {Object.keys(selectedCas).map((cas) => (
+                <span
+                  key={cas}
+                  className="grow min-w-fit rounded-full border border-sky-600 p-2 hover:bg-sky-200 transition-all"
+                >
+                  {cas}
+                </span>
+              ))}
             </div>
-          )}
-        />
+          </div>
+        ) : (
+          <Controller
+            control={control}
+            name="casCode"
+            defaultValue=""
+            render={({ field: { value, onChange, name } }) => (
+              <div className="w-full">
+                <div className="mb-2">
+                  <Label htmlFor={name}>
+                    Digite um ou vários CAS (separe por espaços)
+                  </Label>
+                </div>
+
+                <Input type="text" value={value} onChange={onChange} />
+              </div>
+            )}
+          />
+        )}
 
         <div className="self-end">
-          <Button size="icon" variant="outline" onClick={() => remove(index)}>
-            <IconTrash />
-          </Button>
+          {selectedCas ? (
+            <Button
+              size="icon"
+              variant="outline"
+              onClick={() => {
+                setValue("casCode", "");
+                setSelectedCas(null);
+              }}
+            >
+              <IconTrash />
+            </Button>
+          ) : (
+            <Button type="submit" size="icon" variant="outline">
+              <IconSearch />
+            </Button>
+          )}
         </div>
-      </div>
+      </form>
 
-      <div className="grid grid-cols-1 gap-2 md:grid-cols-8 w-full pb-2 border-b border-zinc-300">
-        <div className="col-span-1 md:col-span-5 flex flex-col items-center w-full gap-2">
-          <p className="mt-4 text-sm font-bold">CETESB, 2021</p>
-
+      {selectedCas && (
+        <div className="flex flex-col items-center w-full gap-2 mt-4">
           <Table className="text-center rounded-md overflow-hidden">
             <TableHeader>
               <TableRow>
+                <TableHead></TableHead>
+
+                <TableHead
+                  colSpan={6}
+                  className="text-center text-sm font-bold text-zinc-950"
+                >
+                  CETESB, 2021
+                </TableHead>
+
+                <TableHead
+                  colSpan={6}
+                  className="text-center text-sm font-bold text-zinc-950"
+                >
+                  USEPA,{" "}
+                  {lastUpdated
+                    ? `${lastUpdatedSplited[2].toUpperCase()} ${
+                        lastUpdatedSplited[4]
+                      }`
+                    : "-"}
+                </TableHead>
+              </TableRow>
+
+              <TableRow>
+                <TableHead></TableHead>
+
                 <TableHead colSpan={5} className="text-center bg-orange-100">
                   Solos (mg/Kg)
                 </TableHead>
@@ -145,65 +187,6 @@ const CasItem: FC<IProps> = ({
                 >
                   Água Subt. (ug/L)
                 </TableHead>
-              </TableRow>
-
-              <TableRow>
-                <TableHead className="text-center">VRQ</TableHead>
-                <TableHead className="text-center">VP</TableHead>
-                <TableHead className="text-center">Agrícola</TableHead>
-                <TableHead className="text-center">Residêncial</TableHead>
-                <TableHead className="text-center">Industrial</TableHead>
-                <TableHead className="text-center">VI</TableHead>
-              </TableRow>
-            </TableHeader>
-
-            <TableBody>
-              {isLoading ? (
-                <TableRow className="animate-pulse">
-                  {[0, 1, 2, 3, 4, 5].map((index) => (
-                    <TableCell colSpan={1} align="center" key={index}>
-                      <span className="flex w-10 h-2 bg-zinc-100 rounded-md" />
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ) : (
-                <TableRow>
-                  <TableCell className="text-center">
-                    {casVINumber && casVINumber.VRQ ? casVINumber.VRQ : "-"}
-                  </TableCell>
-                  <TableCell className="text-center">
-                    {casVINumber && casVINumber.VP ? casVINumber.VP : "-"}
-                  </TableCell>
-                  <TableCell className="text-center">
-                    {casVINumber && casVINumber.agricola
-                      ? casVINumber.agricola
-                      : "-"}
-                  </TableCell>
-                  <TableCell className="text-center">
-                    {casVINumber && casVINumber.residencial
-                      ? casVINumber.residencial
-                      : "-"}
-                  </TableCell>
-                  <TableCell className="text-center">
-                    {casVINumber && casVINumber.industrial
-                      ? casVINumber.industrial
-                      : "-"}
-                  </TableCell>
-                  <TableCell className="text-center">
-                    {casVINumber && casVINumber.VI ? casVINumber.VI : "-"}
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
-
-        <div className="col-span-1 md:col-span-3 flex flex-col items-center w-full gap-2">
-          <p className="mt-4 text-sm font-bold">USEPA, {lastUpdated}</p>
-
-          <Table className="text-center rounded-md overflow-hidden">
-            <TableHeader>
-              <TableRow>
                 <TableHead colSpan={2} className="text-center bg-orange-100">
                   Solos (mg/Kg)
                 </TableHead>
@@ -216,44 +199,132 @@ const CasItem: FC<IProps> = ({
               </TableRow>
 
               <TableRow>
-                <TableHead className="text-center">Resident Soil</TableHead>
-                <TableHead className="text-center">Industrial Soil</TableHead>
-                <TableHead className="text-center">Tap Water</TableHead>
+                <TableHead className="text-center">CAS</TableHead>
+                <TableHead className="text-center">
+                  <Button
+                    variant="ghost"
+                    onClick={() => copyColumnToClipboard("VRQ")}
+                  >
+                    VRQ
+                    <IconClipboard />
+                  </Button>
+                </TableHead>
+                <TableHead className="text-center">
+                  <Button
+                    variant="ghost"
+                    onClick={() => copyColumnToClipboard("VP")}
+                  >
+                    VP
+                    <IconClipboard />
+                  </Button>
+                </TableHead>
+                <TableHead className="text-center">
+                  <Button
+                    variant="ghost"
+                    onClick={() => copyColumnToClipboard("agricola")}
+                  >
+                    Agrícola
+                    <IconClipboard />
+                  </Button>
+                </TableHead>
+                <TableHead className="text-center">
+                  <Button
+                    variant="ghost"
+                    onClick={() => copyColumnToClipboard("residencial")}
+                  >
+                    Residêncial
+                    <IconClipboard />
+                  </Button>
+                </TableHead>
+                <TableHead className="text-center">
+                  <Button
+                    variant="ghost"
+                    onClick={() => copyColumnToClipboard("industrial")}
+                  >
+                    Industrial
+                    <IconClipboard />
+                  </Button>
+                </TableHead>
+                <TableHead className="text-center">
+                  <Button
+                    variant="ghost"
+                    onClick={() => copyColumnToClipboard("VI")}
+                  >
+                    VI
+                    <IconClipboard />
+                  </Button>
+                </TableHead>
+                <TableHead className="text-center">
+                  <Button
+                    variant="ghost"
+                    onClick={() => copyColumnToClipboard("residentSoil")}
+                  >
+                    Resident Soil
+                    <IconClipboard />
+                  </Button>
+                </TableHead>
+                <TableHead className="text-center">
+                  <Button
+                    variant="ghost"
+                    onClick={() => copyColumnToClipboard("industrialSoil")}
+                  >
+                    Industrial Soil
+                    <IconClipboard />
+                  </Button>
+                </TableHead>
+                <TableHead className="text-center">
+                  <Button
+                    variant="ghost"
+                    onClick={() => copyColumnToClipboard("tapWater")}
+                  >
+                    Tap Water
+                    <IconClipboard />
+                  </Button>
+                </TableHead>
               </TableRow>
             </TableHeader>
 
             <TableBody>
-              {isLoading ? (
-                <TableRow className="animate-pulse">
-                  {[0, 1, 2].map((index) => (
-                    <TableCell colSpan={1} align="center" key={index}>
-                      <span className="flex w-10 h-2 bg-zinc-100 rounded-md" />
+              {Object.keys(selectedCas!).map((cas) => {
+                const vi = selectedCas![cas];
+
+                return (
+                  <TableRow key={cas}>
+                    <TableCell className="text-nowrap">{cas}</TableCell>
+                    <TableCell className="text-center">
+                      {vi.VRQ ? vi.VRQ : "-"}
                     </TableCell>
-                  ))}
-                </TableRow>
-              ) : (
-                <TableRow>
-                  <TableCell className="text-center">
-                    {casVINumber && casVINumber.residentSoil
-                      ? casVINumber.residentSoil
-                      : "-"}
-                  </TableCell>
-                  <TableCell className="text-center">
-                    {casVINumber && casVINumber.industrialSoil
-                      ? casVINumber.industrialSoil
-                      : "-"}
-                  </TableCell>
-                  <TableCell className="text-center">
-                    {casVINumber && casVINumber.tapWater
-                      ? casVINumber.tapWater
-                      : "-"}
-                  </TableCell>
-                </TableRow>
-              )}
+                    <TableCell className="text-center">
+                      {vi.VP ? vi.VP : "-"}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {vi.agricola ? vi.agricola : "-"}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {vi.residencial ? vi.residencial : "-"}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {vi.industrial ? vi.industrial : "-"}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {vi.VI ? vi.VI : "-"}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {vi.residentSoil ? vi.residentSoil : "-"}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {vi.industrialSoil ? vi.industrialSoil : "-"}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {vi.tapWater ? vi.tapWater : "-"}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </div>
-      </div>
+      )}
     </Fragment>
   );
 };
