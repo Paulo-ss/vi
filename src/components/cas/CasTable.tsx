@@ -1,6 +1,6 @@
 "use client";
 
-import { FC, Fragment, useState } from "react";
+import { FC, Fragment, useEffect, useRef, useState } from "react";
 import { Label } from "../ui/Label";
 import { Controller, useForm } from "react-hook-form";
 import { VI } from "@/types/VI";
@@ -34,7 +34,19 @@ interface ICasForm {
 
 type VIColumnsType = keyof IVIContent;
 
-const CasItem: FC<IProps> = ({ viByCas, lastUpdated }) => {
+const formattedColumnsName = {
+  VRQ: "Valor de Referência de Qualidade (VRQ)",
+  VP: "Valor de Prevenção (VP)",
+  agricola: "Agrícola",
+  residencial: "Residêncial",
+  industrial: "Industrial",
+  VI: "VI",
+  residentSoil: "Resident Soil",
+  industrialSoil: "Industrial Soil",
+  tapWater: "Tap Water",
+};
+
+const CasTable: FC<IProps> = ({ viByCas, lastUpdated }) => {
   const { control, setValue, handleSubmit } = useForm<ICasForm>({
     defaultValues: {
       casCode: "",
@@ -44,6 +56,9 @@ const CasItem: FC<IProps> = ({ viByCas, lastUpdated }) => {
 
   const [selectedCas, setSelectedCas] = useState<VI | null>(null);
 
+  const rowsRef = useRef<{ [key: string]: HTMLTableRowElement }[]>([]);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   const lastUpdatedSplited = lastUpdated ? lastUpdated.split(" ") : [];
 
   const copyColumnToClipboard = (column: VIColumnsType) => {
@@ -52,16 +67,35 @@ const CasItem: FC<IProps> = ({ viByCas, lastUpdated }) => {
     for (const key of Object.keys(selectedCas!)) {
       const vi = selectedCas![key];
 
-      columnText.push(vi[column] ? String(vi[column]) : "-");
+      columnText.push(vi[column] ? String(vi[column]).replace(".", ",") : "-");
     }
 
     navigator.clipboard.writeText(columnText.join("\r\n"));
 
     toast({
       title: "Copiado!",
-      description: `Coluna ${column} copiada com sucesso.`,
+      description: `Coluna '${formattedColumnsName[column]}' copiada com sucesso.`,
       action: <IconCheckbox color="#39f01d" />,
     });
+  };
+
+  const scrollToCasRow = (cas: string) => {
+    const casRow = rowsRef.current.find(
+      (rowByCas) => Object.keys(rowByCas)[0] === cas
+    );
+
+    if (casRow) {
+      const tableElement = casRow[cas];
+
+      tableElement.scrollIntoView({ behavior: "smooth" });
+      tableElement.classList.add("bg-orange-100");
+
+      const timeout = setTimeout(() => {
+        tableElement.classList.remove("bg-orange-100");
+      }, 2500);
+
+      timeoutRef.current = timeout;
+    }
   };
 
   const onCasSubmit = (data: ICasForm) => {
@@ -91,23 +125,32 @@ const CasItem: FC<IProps> = ({ viByCas, lastUpdated }) => {
     setSelectedCas(foundVIByCas);
   };
 
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
+
   return (
     <Fragment>
+      {selectedCas && (
+        <h2 className="text-lg mb-2 self-start">CAS encontrados</h2>
+      )}
+
       <form className="w-full flex gap-2" onSubmit={handleSubmit(onCasSubmit)}>
         {selectedCas ? (
-          <div className="w-3/4 flex flex-col gap-2">
-            <h2 className="text-lg">CAS encontrados</h2>
-
-            <div className="flex items-center gap-2 overflow-auto no-scrollbar">
-              {Object.keys(selectedCas).map((cas) => (
-                <span
-                  key={cas}
-                  className="grow min-w-fit rounded-full border border-sky-600 p-2 hover:bg-sky-200 transition-all"
-                >
-                  {cas}
-                </span>
-              ))}
-            </div>
+          <div className="w-full flex items-center gap-2 overflow-auto no-scrollbar">
+            {Object.keys(selectedCas).map((cas) => (
+              <span
+                key={cas}
+                className="grow flex justify-center items-center min-w-fit max-w-fit rounded-md bg-zinc-50 py-2 px-4 hover:bg-zinc-100 transition-all cursor-pointer"
+                onClick={() => scrollToCasRow(cas)}
+              >
+                {cas}
+              </span>
+            ))}
           </div>
         ) : (
           <Controller
@@ -136,6 +179,7 @@ const CasItem: FC<IProps> = ({ viByCas, lastUpdated }) => {
               onClick={() => {
                 setValue("casCode", "");
                 setSelectedCas(null);
+                rowsRef.current = [];
               }}
             >
               <IconTrash />
@@ -289,34 +333,54 @@ const CasItem: FC<IProps> = ({ viByCas, lastUpdated }) => {
                 const vi = selectedCas![cas];
 
                 return (
-                  <TableRow key={cas}>
+                  <TableRow
+                    key={cas}
+                    ref={(element) => {
+                      if (element) {
+                        rowsRef.current.push({ [cas]: element });
+                      }
+                    }}
+                    className="transition-all"
+                  >
                     <TableCell className="text-nowrap">{cas}</TableCell>
                     <TableCell className="text-center">
-                      {vi.VRQ ? vi.VRQ : "-"}
+                      {vi.VRQ ? String(vi.VRQ).replace(".", ",") : "-"}
                     </TableCell>
                     <TableCell className="text-center">
-                      {vi.VP ? vi.VP : "-"}
+                      {vi.VP ? String(vi.VP).replace(".", ",") : "-"}
                     </TableCell>
                     <TableCell className="text-center">
-                      {vi.agricola ? vi.agricola : "-"}
+                      {vi.agricola
+                        ? String(vi.agricola).replace(".", ",")
+                        : "-"}
                     </TableCell>
                     <TableCell className="text-center">
-                      {vi.residencial ? vi.residencial : "-"}
+                      {vi.residencial
+                        ? String(vi.residencial).replace(".", ",")
+                        : "-"}
                     </TableCell>
                     <TableCell className="text-center">
-                      {vi.industrial ? vi.industrial : "-"}
+                      {vi.industrial
+                        ? String(vi.industrial).replace(".", ",")
+                        : "-"}
                     </TableCell>
                     <TableCell className="text-center">
-                      {vi.VI ? vi.VI : "-"}
+                      {vi.VI ? String(vi.VI).replace(".", ",") : "-"}
                     </TableCell>
                     <TableCell className="text-center">
-                      {vi.residentSoil ? vi.residentSoil : "-"}
+                      {vi.residentSoil
+                        ? String(vi.residentSoil).replace(".", ",")
+                        : "-"}
                     </TableCell>
                     <TableCell className="text-center">
-                      {vi.industrialSoil ? vi.industrialSoil : "-"}
+                      {vi.industrialSoil
+                        ? String(vi.industrialSoil).replace(".", ",")
+                        : "-"}
                     </TableCell>
                     <TableCell className="text-center">
-                      {vi.tapWater ? vi.tapWater : "-"}
+                      {vi.tapWater
+                        ? String(vi.tapWater).replace(".", ",")
+                        : "-"}
                     </TableCell>
                   </TableRow>
                 );
@@ -329,4 +393,4 @@ const CasItem: FC<IProps> = ({ viByCas, lastUpdated }) => {
   );
 };
 
-export default CasItem;
+export default CasTable;

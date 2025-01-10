@@ -16,9 +16,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${afacad.className} antialiased bg-white flex flex-col items-center`}
-      >
+      <body className={`${afacad.className} antialiased bg-white`}>
         {children}
 
         <Toaster />
