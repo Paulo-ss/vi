@@ -34,6 +34,19 @@ interface ICasForm {
 
 type VIColumnsType = keyof IVIContent;
 
+const casSums = [
+  "87-61-6",
+  "120-82-1",
+  "108-70-3",
+  "156-59-2",
+  "156-60-5",
+  "309-00-2",
+  "60-57-1",
+  "72-54-8",
+  "72-55-9",
+  "50-29-3",
+];
+
 const formattedColumnsName = {
   VRQ: "Valor de Referência de Qualidade (VRQ)",
   VP: "Valor de Prevenção (VP)",
@@ -366,6 +379,7 @@ const CasTable: FC<IProps> = ({ viByCas, lastUpdated }) => {
                     </TableCell>
                     <TableCell className="text-center">
                       {vi.VI ? String(vi.VI).replace(".", ",") : "-"}
+                      {casSums.includes(cas) && " *"}
                     </TableCell>
                     <TableCell className="text-center">
                       {vi.residentSoil

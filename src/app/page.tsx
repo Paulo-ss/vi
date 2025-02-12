@@ -46,6 +46,11 @@ export default async function Home() {
           <p className="italic text-zinc-800 text-sm max-w-screen-sm mt-2">
             * Última atualização em {casVI?.lastUpdated}
           </p>
+
+          <p className="italic text-zinc-800 text-sm max-w-screen-sm mt-2">
+            * Valor de <b>Água Sub. (VI) com *</b> ao lado: Somatória dos
+            isômeros ou metabólitos
+          </p>
         </div>
       </div>
     </div>
