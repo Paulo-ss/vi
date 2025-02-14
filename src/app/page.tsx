@@ -31,8 +31,8 @@ export default async function Home() {
 
         <div className="mt-4 mb-2 py-4">
           <p className="italic text-zinc-800 text-sm max-w-screen-sm">
-            * Dados referente a tabela USEPA são atualizados automaticamente
-            todo mês de <b>Maio e Novembro</b>, conforme site da{" "}
+            * Dados que são referente a tabela USEPA são atualizados
+            automaticamente todo mês de <b>Maio e Novembro</b>, conforme site da{" "}
             <a
               href="https://www.epa.gov/risk/regional-screening-levels-rsls-generic-tables"
               target="_blank"
