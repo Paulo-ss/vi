@@ -158,8 +158,6 @@ const CasTable: FC<IProps> = ({ viByCas, lastUpdated }) => {
       return;
     }
 
-    console.log({ foundVIByCas });
-
     setSelectedCas(foundVIByCas);
   };
 
@@ -179,14 +177,14 @@ const CasTable: FC<IProps> = ({ viByCas, lastUpdated }) => {
 
       <form className="w-full flex gap-2" onSubmit={handleSubmit(onCasSubmit)}>
         {selectedCas ? (
-          <div className="w-full flex items-center gap-2 overflow-auto">
+          <div className="w-full flex items-center gap-2 overflow-auto flipped">
             {selectedCas.map((cas, index) => {
               const casCode = Object.keys(cas)[0];
 
               return (
                 <span
                   key={index}
-                  className="grow flex justify-center items-center min-w-fit max-w-fit rounded-md bg-zinc-50 py-2 px-4 hover:bg-zinc-100 transition-all cursor-pointer"
+                  className="grow flex justify-center items-center min-w-fit max-w-fit rounded-md bg-zinc-50 py-2 px-4 hover:bg-zinc-100 transition-all cursor-pointer flipped"
                   onClick={() => scrollToCasRow(casCode)}
                 >
                   {casCode}
