@@ -67,7 +67,7 @@ const CasTable: FC<IProps> = ({ viByCas, lastUpdated }) => {
   });
   const { toast } = useToast();
 
-  const [selectedCas, setSelectedCas] = useState<VI | null>(null);
+  const [selectedCas, setSelectedCas] = useState<VI[] | null>(null);
 
   const rowsRef = useRef<{ [key: string]: HTMLTableRowElement }[]>([]);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -77,8 +77,9 @@ const CasTable: FC<IProps> = ({ viByCas, lastUpdated }) => {
   const copyColumnToClipboard = (column: VIColumnsType) => {
     const columnText: string[] = [];
 
-    for (const key of Object.keys(selectedCas!)) {
-      const vi = selectedCas![key];
+    for (const cas of selectedCas!) {
+      const casCode = Object.keys(cas)[0];
+      const vi = cas[casCode];
 
       columnText.push(vi[column] ? String(vi[column]).replace(".", ",") : "-");
     }
@@ -112,25 +113,30 @@ const CasTable: FC<IProps> = ({ viByCas, lastUpdated }) => {
   };
 
   const onCasSubmit = (data: ICasForm) => {
-    const allTypedCas = data.casCode.split(/\s+/gm);
+    let allTypedCas = data.casCode.split(/ (?=\S)/gm);
+    allTypedCas = allTypedCas.reduce((casArray, cas) => {
+      const areThereSpaces = cas.match(/\s+/gm);
 
-    let foundVIByCas: VI = {};
+      if (areThereSpaces && areThereSpaces.length > 0) {
+        return [...casArray, cas, " "];
+      }
+
+      return [...casArray, cas];
+    }, [] as string[]);
+
+    const foundVIByCas: VI[] = [];
 
     for (const cas of allTypedCas) {
       if (cas && cas !== "CAS No.") {
         const vi = viByCas[cas];
 
         if (vi) {
-          foundVIByCas = {
-            ...foundVIByCas,
-            [cas]: vi,
-          };
+          foundVIByCas.push({ [cas]: vi });
 
           continue;
         }
 
-        foundVIByCas = {
-          ...foundVIByCas,
+        foundVIByCas.push({
           [cas]: {
             agricola: undefined,
             industrial: undefined,
@@ -142,11 +148,11 @@ const CasTable: FC<IProps> = ({ viByCas, lastUpdated }) => {
             VRQ: undefined,
             VP: undefined,
           },
-        };
+        });
       }
     }
 
-    if (Object.keys(foundVIByCas).length === 0) {
+    if (foundVIByCas.length === 0) {
       setSelectedCas(null);
 
       return;
@@ -174,15 +180,19 @@ const CasTable: FC<IProps> = ({ viByCas, lastUpdated }) => {
       <form className="w-full flex gap-2" onSubmit={handleSubmit(onCasSubmit)}>
         {selectedCas ? (
           <div className="w-full flex items-center gap-2 overflow-auto">
-            {Object.keys(selectedCas).map((cas) => (
-              <span
-                key={cas}
-                className="grow flex justify-center items-center min-w-fit max-w-fit rounded-md bg-zinc-50 py-2 px-4 hover:bg-zinc-100 transition-all cursor-pointer"
-                onClick={() => scrollToCasRow(cas)}
-              >
-                {cas}
-              </span>
-            ))}
+            {selectedCas.map((cas, index) => {
+              const casCode = Object.keys(cas)[0];
+
+              return (
+                <span
+                  key={index}
+                  className="grow flex justify-center items-center min-w-fit max-w-fit rounded-md bg-zinc-50 py-2 px-4 hover:bg-zinc-100 transition-all cursor-pointer"
+                  onClick={() => scrollToCasRow(casCode)}
+                >
+                  {casCode}
+                </span>
+              );
+            })}
           </div>
         ) : (
           <Controller
@@ -361,20 +371,21 @@ const CasTable: FC<IProps> = ({ viByCas, lastUpdated }) => {
             </TableHeader>
 
             <TableBody>
-              {Object.keys(selectedCas!).map((cas) => {
-                const vi = selectedCas![cas];
+              {selectedCas!.map((cas, index) => {
+                const casCode = Object.keys(cas)[0];
+                const vi = cas[casCode];
 
                 return (
                   <TableRow
-                    key={cas}
+                    key={index}
                     ref={(element) => {
                       if (element) {
-                        rowsRef.current.push({ [cas]: element });
+                        rowsRef.current.push({ [casCode]: element });
                       }
                     }}
                     className="transition-all"
                   >
-                    <TableCell className="text-nowrap">{cas}</TableCell>
+                    <TableCell className="text-nowrap">{casCode}</TableCell>
                     <TableCell className="text-center">
                       {vi.VRQ ? String(vi.VRQ).replace(".", ",") : "-"}
                     </TableCell>
@@ -398,7 +409,7 @@ const CasTable: FC<IProps> = ({ viByCas, lastUpdated }) => {
                     </TableCell>
                     <TableCell className="text-center">
                       {vi.VI ? String(vi.VI).replace(".", ",") : "-"}
-                      {casSums.includes(cas) && " *"}
+                      {casSums.includes(casCode) && " *"}
                     </TableCell>
                     <TableCell className="text-center">
                       {vi.residentSoil
