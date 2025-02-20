@@ -125,7 +125,24 @@ const CasTable: FC<IProps> = ({ viByCas, lastUpdated }) => {
             ...foundVIByCas,
             [cas]: vi,
           };
+
+          continue;
         }
+
+        foundVIByCas = {
+          ...foundVIByCas,
+          [cas]: {
+            agricola: undefined,
+            industrial: undefined,
+            industrialSoil: undefined,
+            residencial: undefined,
+            residentSoil: undefined,
+            tapWater: undefined,
+            VI: undefined,
+            VRQ: undefined,
+            VP: undefined,
+          },
+        };
       }
     }
 
@@ -134,6 +151,8 @@ const CasTable: FC<IProps> = ({ viByCas, lastUpdated }) => {
 
       return;
     }
+
+    console.log({ foundVIByCas });
 
     setSelectedCas(foundVIByCas);
   };
@@ -154,7 +173,7 @@ const CasTable: FC<IProps> = ({ viByCas, lastUpdated }) => {
 
       <form className="w-full flex gap-2" onSubmit={handleSubmit(onCasSubmit)}>
         {selectedCas ? (
-          <div className="w-full flex items-center gap-2 overflow-auto no-scrollbar">
+          <div className="w-full flex items-center gap-2 overflow-auto">
             {Object.keys(selectedCas).map((cas) => (
               <span
                 key={cas}
