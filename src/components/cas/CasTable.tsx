@@ -118,7 +118,7 @@ const CasTable: FC<IProps> = ({ viByCas, lastUpdated }) => {
       const areThereSpaces = cas.match(/\s+/gm);
 
       if (areThereSpaces && areThereSpaces.length > 0) {
-        return [...casArray, cas, " "];
+        return [...casArray, cas.replace(/\s+/gm, ""), " "];
       }
 
       return [...casArray, cas];
