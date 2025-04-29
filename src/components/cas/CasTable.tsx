@@ -51,7 +51,7 @@ const formattedColumnsName = {
   VRQ: "Valor de Referência de Qualidade (VRQ)",
   VP: "Valor de Prevenção (VP)",
   agricola: "Agrícola",
-  residencial: "Residêncial",
+  residencial: "Residencial",
   industrial: "Industrial",
   VI: "VI",
   residentSoil: "Resident Soil",
@@ -316,7 +316,7 @@ const CasTable: FC<IProps> = ({ viByCas, lastUpdated }) => {
                     variant="ghost"
                     onClick={() => copyColumnToClipboard("residencial")}
                   >
-                    Residêncial
+                    Residencial
                     <IconClipboard />
                   </Button>
                 </TableHead>
